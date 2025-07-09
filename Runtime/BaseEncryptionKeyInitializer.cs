@@ -1,4 +1,4 @@
-﻿namespace Sabresaurus.PlayerPrefsUtilities
+﻿namespace Sabresaurus.UnityPrefsUtilities
 {
     public abstract class BaseEncryptionKeyInitializer
     {

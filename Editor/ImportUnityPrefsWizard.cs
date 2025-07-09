@@ -1,9 +1,9 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace Sabresaurus.PlayerPrefsEditor
+namespace Sabresaurus.UnityPrefsEditor
 {
-    public class ImportPlayerPrefsWizard : ScriptableWizard
+    public class ImportUnityPrefsWizard : ScriptableWizard
     {
         // Company and product name for importing PlayerPrefs from other projects
         [SerializeField] string importCompanyName = "";
@@ -17,7 +17,7 @@ namespace Sabresaurus.PlayerPrefsEditor
 
         private void OnInspectorUpdate()
         {
-            if (Resources.FindObjectsOfTypeAll(typeof(PlayerPrefsEditor)).Length == 0)
+            if (Resources.FindObjectsOfTypeAll(typeof(UnityPrefsEditor)).Length == 0)
             {
                 Close();
             }
@@ -32,9 +32,9 @@ namespace Sabresaurus.PlayerPrefsEditor
 
         private void OnWizardCreate()
         {
-            if (Resources.FindObjectsOfTypeAll(typeof(PlayerPrefsEditor)).Length >= 1)
+            if (Resources.FindObjectsOfTypeAll(typeof(UnityPrefsEditor)).Length >= 1)
             {
-                ((PlayerPrefsEditor)Resources.FindObjectsOfTypeAll(typeof(PlayerPrefsEditor))[0]).Import(importCompanyName, importProductName);
+                ((UnityPrefsEditor)Resources.FindObjectsOfTypeAll(typeof(UnityPrefsEditor))[0]).Import(importCompanyName, importProductName);
             }
         }
     }

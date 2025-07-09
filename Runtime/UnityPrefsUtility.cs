@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using UnityEngine;
 
-namespace Sabresaurus.PlayerPrefsUtilities
+namespace Sabresaurus.UnityPrefsUtilities
 {
     public static class PlayerPrefsUtility
     {

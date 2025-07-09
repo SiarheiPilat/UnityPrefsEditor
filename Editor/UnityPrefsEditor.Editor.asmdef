@@ -1,5 +1,5 @@
 {
-    "name": "PlayerPrefsEditor.Editor",
+    "name": "UnityPrefsEditor.Editor",
     "references": [
         "GUID:a478bb7e4764e7d4693af7f70e27dec8"
     ],

@@ -4,23 +4,23 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
-using Sabresaurus.PlayerPrefsUtilities;
+using Sabresaurus.UnityPrefsUtilities;
 using Random = UnityEngine.Random;
 
-namespace Sabresaurus.PlayerPrefsEditor
+namespace Sabresaurus.UnityPrefsEditor
 {
-    public class PlayerPrefsEditor : EditorWindow
+    public class UnityPrefsEditor : EditorWindow
     {
         private static bool DisplayMoreOptions
         {
-            get => EditorPrefs.GetBool(nameof(PlayerPrefsEditor) + "." + nameof(DisplayMoreOptions));
-            set => EditorPrefs.SetBool(nameof(PlayerPrefsEditor) + "." + nameof(DisplayMoreOptions), value);
+            get => EditorPrefs.GetBool(nameof(UnityPrefsEditor) + "." + nameof(DisplayMoreOptions));
+            set => EditorPrefs.SetBool(nameof(UnityPrefsEditor) + "." + nameof(DisplayMoreOptions), value);
         }
 
         private static bool DisplayAddPref
         {
-            get => EditorPrefs.GetBool(nameof(PlayerPrefsEditor) + "." + nameof(DisplayAddPref));
-            set => EditorPrefs.SetBool(nameof(PlayerPrefsEditor) + "." + nameof(DisplayAddPref), value);
+            get => EditorPrefs.GetBool(nameof(UnityPrefsEditor) + "." + nameof(DisplayAddPref));
+            set => EditorPrefs.SetBool(nameof(UnityPrefsEditor) + "." + nameof(DisplayAddPref), value);
         }
 
         private static readonly System.Text.Encoding encoding = new System.Text.UTF8Encoding();
@@ -98,11 +98,11 @@ namespace Sabresaurus.PlayerPrefsEditor
         SearchField searchField;
 #endif
 
-        [MenuItem("Window/PlayerPrefs Editor")]
+        [MenuItem("Tools/Suasor/Unity Prefs Editor")]
         private static void Init()
         {
             // Get existing open window or if none, make a new one:
-            PlayerPrefsEditor editor = (PlayerPrefsEditor) GetWindow(typeof(PlayerPrefsEditor), false, "Prefs Editor");
+            UnityPrefsEditor editor = (UnityPrefsEditor) GetWindow(typeof(UnityPrefsEditor), false, "Prefs Editor");
 
             // Require the editor window to be at least 300 pixels wide
             Vector2 minSize = editor.minSize;
@@ -266,10 +266,6 @@ namespace Sabresaurus.PlayerPrefsEditor
             }
         }
 
-        /// <summary>
-        /// This returns an array of the stored PlayerPrefs from the file system (OSX) or registry (Windows), to allow
-        /// us to to look up what's actually in the PlayerPrefs. This is used as a kind of lookup table.
-        /// </summary>
         private PlayerPrefPair[] RetrieveSavedPrefs(string companyName, string productName)
         {
             if (Application.platform == RuntimePlatform.OSXEditor)
@@ -282,47 +278,38 @@ namespace Sabresaurus.PlayerPrefsEditor
                 }
                 else
                 {
-                    // From Unity Docs: On Mac OS X PlayerPrefs are stored in ~/Library/Preferences folder, in a file named unity.[company name].[product name].plist, where company and product names are the names set up in Project Settings. The same .plist file is used for both Projects run in the Editor and standalone players.
-
-                    // Construct the plist filename from the project's settings
                     string plistFilename = $"unity.{companyName}.{productName}.plist";
-                    // Now construct the fully qualified path
-                    playerPrefsPath = Path.Combine(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library/Preferences"), plistFilename);
+                    playerPrefsPath = Path.Combine(
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library/Preferences"),
+                        plistFilename);
                 }
 
-                // Parse the PlayerPrefs file if it exists
                 if (File.Exists(playerPrefsPath))
                 {
-                    // Parse the plist then cast it to a Dictionary
                     object plist = Plist.readPlist(playerPrefsPath);
-
                     Dictionary<string, object> parsed = plist as Dictionary<string, object>;
 
-                    // Convert the dictionary data into an array of PlayerPrefPairs
                     List<PlayerPrefPair> tempPlayerPrefs = new List<PlayerPrefPair>(parsed.Count);
-                    foreach (KeyValuePair<string, object> pair in parsed)
+                    foreach (var pair in parsed)
                     {
-                        if (pair.Value.GetType() == typeof(double))
+                        if (pair.Value is double)
                         {
-                            // Some float values may come back as double, so convert them back to floats
-                            tempPlayerPrefs.Add(new PlayerPrefPair() {Key = pair.Key, Value = (float) (double) pair.Value});
+                            tempPlayerPrefs.Add(new PlayerPrefPair { Key = pair.Key, Value = (float)(double)pair.Value });
                         }
-                        else if (pair.Value.GetType() == typeof(bool))
+                        else if (pair.Value is bool)
                         {
-                            // Unity PlayerPrefs API doesn't allow bools, so ignore them
+                            // Ignore bools (Unity doesn't support them in PlayerPrefs)
                         }
                         else
                         {
-                            tempPlayerPrefs.Add(new PlayerPrefPair() {Key = pair.Key, Value = pair.Value});
+                            tempPlayerPrefs.Add(new PlayerPrefPair { Key = pair.Key, Value = pair.Value });
                         }
                     }
 
-                    // Return the results
                     return tempPlayerPrefs.ToArray();
                 }
                 else
                 {
-                    // No existing PlayerPrefs saved (which is valid), so just return an empty array
                     return new PlayerPrefPair[0];
                 }
             }
@@ -332,93 +319,67 @@ namespace Sabresaurus.PlayerPrefsEditor
 
                 if (showEditorPrefs)
                 {
-                    // Starting Unity 5.5 registry key has " 5.x" suffix: https://docs.unity3d.com/550/Documentation/ScriptReference/EditorPrefs.html
-                    // Even though for some versions of Unity docs state that N.x suffix is used where N.x is the major version number,
-                    // it's still " 5.x" suffix used for that cases which is probably bug in the docs.
-                    // Note that starting 2019.2 docs have " 5.x" suffix: https://docs.unity3d.com/2019.2/Documentation/ScriptReference/EditorPrefs.html
-#if UNITY_5_5_OR_NEWER
-                    string subKeyPath = "Software\\Unity Technologies\\Unity Editor 5.x";
-#else
-                    string subKeyPath = "Software\\Unity Technologies\\Unity Editor";
-#endif
-
-                    registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(subKeyPath);
+                    registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software\\Unity Technologies\\Unity Editor 5.x");
                 }
                 else
                 {
-                    // From Unity docs: On Windows, PlayerPrefs are stored in the registry under HKCU\Software\[company name]\[product name] key, where company and product names are the names set up in Project Settings.
-#if UNITY_5_5_OR_NEWER
-                    // From Unity 5.5 editor PlayerPrefs moved to a specific location
-                    registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software\\Unity\\UnityEditor\\" + companyName + "\\" + productName);
-#else
-                    registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software\\" + companyName + "\\" + productName);
-#endif
+                    registryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey($"Software\\Unity\\UnityEditor\\{companyName}\\{productName}");
                 }
 
-                // Parse the registry if the specified registryKey exists
                 if (registryKey != null)
                 {
-                    // Get an array of what keys (registry value names) are stored
                     string[] valueNames = registryKey.GetValueNames();
+                    List<PlayerPrefPair> prefs = new List<PlayerPrefPair>(valueNames.Length);
 
-                    // Create the array of the right size to take the saved PlayerPrefs
-                    PlayerPrefPair[] tempPlayerPrefs = new PlayerPrefPair[valueNames.Length];
-
-                    // Parse and convert the registry saved PlayerPrefs into our array
-                    int i = 0;
-                    foreach (string valueName in valueNames)
+                    foreach (string rawKey in valueNames)
                     {
-                        string key = valueName;
-
-                        // Remove the _h193410979 style suffix used on PlayerPref keys in Windows registry
+                        string key = rawKey;
                         int index = key.LastIndexOf("_");
-                        key = key.Remove(index, key.Length - index);
+                        if (index > 0) key = key.Substring(0, index);
 
-                        // Get the value from the registry
-                        object ambiguousValue = registryKey.GetValue(valueName);
+                        object rawValue = registryKey.GetValue(rawKey);
 
-                        // Unfortunately floats will come back as an int (at least on 64 bit) because the float is stored as
-                        // 64 bit but marked as 32 bit - which confuses the GetValue() method greatly!
-                        if (ambiguousValue.GetType() == typeof(int) || ambiguousValue.GetType() == typeof(long))
+                        object valueToStore = null;
+
+                        if (rawValue is int || rawValue is long)
                         {
-                            // If the PlayerPref is not actually an int then it must be a float, this will evaluate to true
-                            // (impossible for it to be 0 and -1 at the same time)
-                            if (GetInt(key, -1) == -1 && GetInt(key, 0) == 0)
+                            // Try to determine whether it's actually a float
+                            if (!showEditorPrefs &&
+                                PlayerPrefs.GetInt(key, int.MinValue) == int.MinValue &&
+                                Mathf.Approximately(PlayerPrefs.GetFloat(key, float.MinValue), float.MinValue) == false)
                             {
-                                // Fetch the float value from PlayerPrefs in memory
-                                ambiguousValue = GetFloat(key);
+                                valueToStore = PlayerPrefs.GetFloat(key);
                             }
-                            else if (showEditorPrefs && (GetBool(key, true) != true || GetBool(key, false) != false))
+                            else
                             {
-                                // If it reports a non default value as a bool, it's a bool not a string
-                                ambiguousValue = GetBool(key);
+                                valueToStore = Convert.ToInt32(rawValue);
                             }
                         }
-                        else if (ambiguousValue.GetType() == typeof(byte[]))
+                        else if (rawValue is byte[])
                         {
-                            // On Unity 5 a string may be stored as binary, so convert it back to a string
-                            ambiguousValue = encoding.GetString((byte[]) ambiguousValue).TrimEnd('\0');
+                            valueToStore = encoding.GetString((byte[])rawValue).TrimEnd('\0');
+                        }
+                        else
+                        {
+                            valueToStore = rawValue;
                         }
 
-                        // Assign the key and value into the respective record in our output array
-                        tempPlayerPrefs[i] = new PlayerPrefPair() {Key = key, Value = ambiguousValue};
-                        i++;
+                        prefs.Add(new PlayerPrefPair { Key = key, Value = valueToStore });
                     }
 
-                    // Return the results
-                    return tempPlayerPrefs;
+                    return prefs.ToArray();
                 }
                 else
                 {
-                    // No existing PlayerPrefs saved (which is valid), so just return an empty array
                     return new PlayerPrefPair[0];
                 }
             }
             else
             {
-                throw new NotSupportedException("PlayerPrefsEditor doesn't support this Unity Editor platform");
+                throw new NotSupportedException("Unsupported platform for PlayerPrefs retrieval.");
             }
         }
+
 
         private void UpdateSearch()
         {
@@ -1158,7 +1119,7 @@ namespace Sabresaurus.PlayerPrefsEditor
                     // Allow the user to import PlayerPrefs from another project (helpful when renaming product name)
                     if (GUILayout.Button("Import"))
                     {
-                        ImportPlayerPrefsWizard wizard = ScriptableWizard.DisplayWizard<ImportPlayerPrefsWizard>("Import PlayerPrefs", "Import");
+                        ImportUnityPrefsWizard wizard = ScriptableWizard.DisplayWizard<ImportUnityPrefsWizard>("Import PlayerPrefs", "Import");
                     }
                 }
 

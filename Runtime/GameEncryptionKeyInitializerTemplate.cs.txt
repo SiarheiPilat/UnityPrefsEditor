@@ -2,7 +2,7 @@
 using UnityEditor;
 #endif
 using UnityEngine;
-using Sabresaurus.PlayerPrefsUtilities;
+using Sabresaurus.UnityPrefsUtilities;
 
 public static class GameEncryptionKeyInitializer
 {

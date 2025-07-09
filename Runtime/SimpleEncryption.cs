@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Sabresaurus.PlayerPrefsUtilities
+namespace Sabresaurus.UnityPrefsUtilities
 {
     public static class SimpleEncryption
     {
