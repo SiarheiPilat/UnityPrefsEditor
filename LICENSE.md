@@ -1,6 +1,7 @@
 MIT License
 
 Copyright (c) 2017 Sabresaurus
+
 Copyright (c) 2025 Suasor
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
